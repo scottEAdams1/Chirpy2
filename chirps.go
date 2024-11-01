@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/scottEAdams1/Chirpy2/internal/auth"
 	"github.com/scottEAdams1/Chirpy2/internal/database"
 )
 
@@ -22,14 +23,25 @@ type Chirp struct {
 }
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+	tokenString, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, 401, "No token string", err)
+		return
+	}
+
+	id, err := auth.ValidateJWT(tokenString, cfg.secret)
+	if err != nil {
+		respondWithError(w, 401, "Invalid token", err)
+		return
+	}
+
 	type parameters struct {
-		Body   string    `json:"body"`
-		UserId uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		fmt.Printf("Error deconding parameters: %s", err)
 		respondWithError(w, 500, "Something went wrong", err)
@@ -39,7 +51,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	cleaned_body := validate_chirp(w, params.Body)
 	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleaned_body,
-		UserID: params.UserId,
+		UserID: id,
 	})
 	if err != nil {
 		fmt.Println("Error creating chirp")
