@@ -43,7 +43,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	params := parameters{}
 	err = decoder.Decode(&params)
 	if err != nil {
-		fmt.Printf("Error deconding parameters: %s", err)
+		fmt.Printf("Error decoding parameters: %s", err)
 		respondWithError(w, 500, "Something went wrong", err)
 		return
 	}
