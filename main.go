@@ -51,15 +51,35 @@ func main() {
 	}
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
-	mux.HandleFunc("GET /api/healthz", handlerReadiness)
+
+	//Admin
+	//Metrics
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
+
+	//Reset
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
+
+	//API
+	//Healthz
+	mux.HandleFunc("GET /api/healthz", handlerReadiness)
+
+	//Users
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
-	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
+	mux.HandleFunc("PUT /api/users", apiCfg.handlerUpdateUser)
+
+	//Chirps
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirp)
+	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerDeleteChirp)
+
+	//Login
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
+
+	//Refresh
 	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
+
+	//Revoke
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
 
 	fmt.Printf("Serving on port: %s\n", port)

@@ -119,6 +119,51 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
+	tokenString, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, 401, "No token string", err)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(tokenString, cfg.secret)
+	if err != nil {
+		respondWithError(w, 401, "Invalid token", err)
+		return
+	}
+
+	path := r.PathValue("chirpID")
+	if path == "" {
+		respondWithError(w, 400, "No ID given", errors.New("no id given"))
+		return
+	}
+
+	chirpID, err := uuid.Parse(path)
+	if err != nil {
+		respondWithError(w, 400, "Unable to parse", err)
+		return
+	}
+
+	chirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		respondWithError(w, 404, "Error getting chirp", err)
+		return
+	}
+
+	if chirp.UserID != userID {
+		respondWithError(w, 403, "Error chirp doesn't belong to user", err)
+		return
+	}
+
+	err = cfg.db.DeleteChirpByID(r.Context(), chirpID)
+	if err != nil {
+		respondWithError(w, 404, "Error deleting chirp", err)
+		return
+	}
+
+	respondWithJSON(w, 204, struct{}{})
+}
+
 func validate_chirp(w http.ResponseWriter, body string) string {
 	maxLength := 140
 	if len(body) > maxLength {
