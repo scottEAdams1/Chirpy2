@@ -17,6 +17,7 @@ type apiConfig struct {
 	db             *database.Queries
 	platform       string
 	secret         string
+	polka_key      string
 }
 
 func main() {
@@ -36,11 +37,14 @@ func main() {
 
 	secret := os.Getenv("SECRET")
 
+	polka_key := os.Getenv("POLKA_KEY")
+
 	const port = "8080"
 	apiCfg := apiConfig{
-		db:       dbQueries,
-		platform: platform,
-		secret:   secret,
+		db:        dbQueries,
+		platform:  platform,
+		secret:    secret,
+		polka_key: polka_key,
 	}
 
 	mux := http.NewServeMux()
@@ -81,6 +85,9 @@ func main() {
 
 	//Revoke
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
+
+	//Polka
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerUpgradeUser)
 
 	fmt.Printf("Serving on port: %s\n", port)
 
