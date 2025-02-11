@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -69,10 +70,28 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
-	chirps, err := cfg.db.GetChirps(r.Context())
-	if err != nil {
-		respondWithError(w, 400, "Error retrieving chirps", err)
-		return
+	id := r.URL.Query().Get("author_id")
+	sort1 := r.URL.Query().Get("sort")
+	var chirps []database.Chirp
+	var err error
+	if id == "" {
+		chirps, err = cfg.db.GetChirps(r.Context())
+		if err != nil {
+			respondWithError(w, 400, "Error retrieving chirps", err)
+			return
+		}
+	} else {
+		uuid, err := uuid.Parse(id)
+		if err != nil {
+			respondWithError(w, 400, "Unable to parse", err)
+			return
+		}
+		chirps, err = cfg.db.GetChirpByAuthorID(r.Context(), uuid)
+		if err != nil {
+			fmt.Println("Error retrieving chirps")
+			respondWithError(w, 404, "Error retrieving chirps", err)
+			return
+		}
 	}
 	var structChirps []Chirp
 
@@ -86,8 +105,19 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 		}
 		structChirps = append(structChirps, structChirp)
 	}
-
-	respondWithJSON(w, 200, structChirps)
+	if sort1 == "" {
+		respondWithJSON(w, 200, structChirps)
+	} else if sort1 == "asc" {
+		sort.Slice(structChirps, func(i, j int) bool {
+			return structChirps[i].CreatedAt.Before(structChirps[j].CreatedAt)
+		})
+		respondWithJSON(w, 200, structChirps)
+	} else if sort1 == "desc" {
+		sort.Slice(structChirps, func(i, j int) bool {
+			return structChirps[i].CreatedAt.After(structChirps[j].CreatedAt)
+		})
+		respondWithJSON(w, 200, structChirps)
+	}
 }
 
 func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
